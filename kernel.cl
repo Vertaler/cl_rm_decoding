@@ -1,22 +1,9 @@
 #pragma OPENCL EXTENSION cl_amd_printf : enable
-//#define DECLARE_MAP(T)\
-//void map_(T)_f((void *) source, __local (T)* dest,(T) (*func)((T)), int size){\
-//    source = ((T)*) source;\
-//    int local_size = get_local_size(0);\
-//    int local_id = get_local_id(0);\
-//    int size_per_item = size / local_size;\
-//    int remainder_size = size % local_size;\
-//    for(int i=0; i<size_per_item; i++){\
-//        int index =i*local_size+local_id;\
-//        dest[index] = func(source[index]);\
-//    }\
-//    if(local_id < remainder_size){\
-//        int index = size_per_item + local_id;\
-//        dest[index] = source(array[index]);\
-//    }\
-//}
-//#define MAP(T) map_(T)_f
-
+#ifdef DEBUG
+#define LOG(f, ...) printf((f),__VA_ARGS__)
+#else
+#define LOG(f, ...)
+#endif
 
 int get_leftmost_coord_of_monom(int monom){
     int result = 0;
@@ -144,9 +131,9 @@ __kernel void linear_decode(__global const char *f, __global char *res, __global
     __local int begin;
     __local int abs_sum_1;
     __local int abs_sum_2;
-    __local int test;
+    __local int layer;
     if(local_id == 0){
-        test = 0;
+        layer = 0;
         begin = 0;
         half_count = 1 << (*n_ptr - 1);
     }
@@ -162,8 +149,8 @@ __kernel void linear_decode(__global const char *f, __global char *res, __global
 
           walsh_res[first_coord] =  f1 + f2;
           walsh_res[second_coord] = f1 - f2;
-          printf("Test: %d Item: %d Count:%d Begin:%d i1:%d i2:%d f1:%d f2:%d w1:%d w2:%d\n",
-          test, local_id, half_count*2, begin, first_coord, second_coord, f1, f2, walsh_res[first_coord], walsh_res[second_coord]);
+          LOG("Layer: %d Item: %d Count:%d Begin:%d i1:%d i2:%d f1:%d f2:%d w1:%d w2:%d\n",
+          layer, local_id, half_count*2, begin, first_coord, second_coord, f1, f2, walsh_res[first_coord], walsh_res[second_coord]);
         }
         barrier(CLK_LOCAL_MEM_FENCE);
         if(get_local_id(0) == 0 )
@@ -175,13 +162,12 @@ __kernel void linear_decode(__global const char *f, __global char *res, __global
            if(abs_sum_1 < abs_sum_2){
                begin += half_count;
            }
-           test++;
+           layer++;
            half_count /= 2;
         }
         barrier(CLK_LOCAL_MEM_FENCE);
     }
 
-//    barrier(CLK_LOCAL_MEM_FENCE);
     while(half_count > 0 && local_id < half_count){
        int first_coord = begin + local_id;
        int second_coord = first_coord + half_count;
@@ -191,44 +177,31 @@ __kernel void linear_decode(__global const char *f, __global char *res, __global
 
        walsh_res[first_coord] =  f1 + f2;
        walsh_res[second_coord ] = f1 - f2;
-       printf("Test:%d Item: %d Count:%d Begin:%d i1:%d i2:%d f1:%d f2:%d w1:%d w2:%d\n",
-       test, local_id, half_count*2, begin, first_coord, second_coord, f1, f2, walsh_res[first_coord], walsh_res[second_coord]);
-//       barrier(CLK_GLOBAL_MEM_FENCE|CLK_LOCAL_MEM_FENCE);
+       LOG("Layer:%d Item: %d Count:%d Begin:%d i1:%d i2:%d f1:%d f2:%d w1:%d w2:%d\n",
+       layer, local_id, half_count*2, begin, first_coord, second_coord, f1, f2, walsh_res[first_coord], walsh_res[second_coord]);
        if(local_id == 0 ){
-//            for(int i=0; i<8; i++){
-//                printf("%d ", walsh_res[i]);
-//            }
-//            printf("\n");
             abs_sum_1 = seq_abs_sum_array(walsh_res + begin, half_count);
-            //printf("Count:%d Begin:%d abs_sum_1: %d\n", half_count*2, begin, abs_sum_1);
        }
        if(local_id == 1 ){
             abs_sum_2 = seq_abs_sum_array(walsh_res + begin + half_count, half_count);
-            //printf("Count:%d Begin:%d abs_sum_2: %d\n", half_count*2, begin, abs_sum_2);
        }
-       //barrier(CLK_GLOBAL_MEM_FENCE | CLK_LOCAL_MEM_FENCE);
-//       printf("Count:%d Begin:%d local_id: %d\n", half_count*2, begin, local_id);
        barrier( CLK_LOCAL_MEM_FENCE);
        if(local_id == 0){
           if(abs_sum_1 < abs_sum_2){
               begin += half_count;
           }
-          test++;
+          layer++;
           half_count /= 2;
        }
-//       barrier(CLK_LOCAL_MEM_FENCE);
     }
     barrier(CLK_LOCAL_MEM_FENCE);
-    //printf("%d",local_id);
     if(local_id == 1){
         if(abs(walsh_res[begin+1]) > abs(walsh_res[begin]))
             begin = begin+1;
-        printf("%d %d\n", begin, walsh_res[begin]);
-        //for(int i=0;i < 1<<*n_ptr; i++ )printf("%d", walsh_res[i]);
+        LOG("%d %d\n", begin, walsh_res[begin]);
         for(int i=0; i < *n_ptr; i++){
             res[1 << i] = (begin & 1<<i) != 0;
         }
-//        printf("\n%d\n", walsh_res[begin]);
         res[0] = walsh_res[begin] < 0;
     }
 }
