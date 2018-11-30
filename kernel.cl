@@ -124,6 +124,11 @@ __kernel void check_monom( __global const char *f, //function vector
   res[leftmost_coord  | monom] = (char)(walsh_res[0]<walsh_res[count_per_item]);
 }
 
+__kernel void xor_arrays(__global long16 *first, __global long16 *second){
+    int global_id = get_global_id(0);
+    first[global_id] ^= second[global_id];
+}
+
 __kernel void linear_decode(__global const char *f, __global char *res, __global const int* n_ptr, __local int* walsh_res){
     int local_id = get_local_id(0);
     const int local_size = get_local_size(0);
