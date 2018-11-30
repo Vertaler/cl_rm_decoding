@@ -47,8 +47,7 @@ class KernelsTestCase(unittest.TestCase):
         self.assertListEqual(actual_terms, expected_terms)
 
     def test_xor_arrays(self):
-        ARRAY_SIZE = 256
-        LONG_16_BYTES = 128
+        ARRAY_SIZE = 1024
 
         arr_1 = np.random.randint(0,2,ARRAY_SIZE).astype(np.int8)
         arr_2 = np.random.randint(0,2,ARRAY_SIZE).astype(np.int8)
@@ -58,7 +57,7 @@ class KernelsTestCase(unittest.TestCase):
         arr_1_g = cl.Buffer(self.ctx, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=arr_1)
         arr_2_g = cl.Buffer(self.ctx, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=arr_2)
 
-        self.prg.xor_arrays(self.queue, (ARRAY_SIZE//LONG_16_BYTES,), None, arr_1_g, arr_2_g)
+        self.prg.xor_arrays(self.queue, (ARRAY_SIZE,), None, arr_1_g, arr_2_g)
 
         cl.enqueue_copy(self.queue, arr_1, arr_1_g)
 
