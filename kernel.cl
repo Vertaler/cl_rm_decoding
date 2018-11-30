@@ -1,3 +1,23 @@
+#pragma OPENCL EXTENSION cl_amd_printf : enable
+//#define DECLARE_MAP(T)\
+//void map_(T)_f((void *) source, __local (T)* dest,(T) (*func)((T)), int size){\
+//    source = ((T)*) source;\
+//    int local_size = get_local_size(0);\
+//    int local_id = get_local_id(0);\
+//    int size_per_item = size / local_size;\
+//    int remainder_size = size % local_size;\
+//    for(int i=0; i<size_per_item; i++){\
+//        int index =i*local_size+local_id;\
+//        dest[index] = func(source[index]);\
+//    }\
+//    if(local_id < remainder_size){\
+//        int index = size_per_item + local_id;\
+//        dest[index] = source(array[index]);\
+//    }\
+//}
+//#define MAP(T) map_(T)_f
+
+
 int get_leftmost_coord_of_monom(int monom){
     int result = 0;
     for(int i=0; i<32; i++){
@@ -21,12 +41,31 @@ int get_ith_elem_of_subfunc(int i, int monom, int m){
     return result;
 }
 
-char to_real(char bool_func_elem){
+int to_real(char bool_func_elem){
     return pown(-1.,bool_func_elem);
+}
+
+//DECLARE_MAP(int)
+void map_to_real(__global const char* source, __local int* dest, int size){
+    int local_size = get_local_size(0);
+    int local_id = get_local_id(0);
+    int size_per_item = size / local_size;
+    int remainder_size = size % local_size;
+    for(int i=0; i<size_per_item; i++){
+        int index =i*local_size+local_id;
+        dest[index] = to_real(source[index]);
+    }
+    if(local_id < remainder_size){
+        int index = size_per_item + local_id;
+        dest[index] = to_real(source[index]);
+    }
+    barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
 }
 
 void abs_sum_array(__global int *array, int size_per_item){
     // assume size of array is 2^k
+    // change array
+    // save result in array[0]
     int local_id = get_local_id(0);
     int local_size = get_local_size(0);
     int size = get_local_size(0);
@@ -42,6 +81,15 @@ void abs_sum_array(__global int *array, int size_per_item){
             array[0] += array[i];
         }
     }
+}
+
+int seq_abs_sum_array(__local int *array, int size){
+    // does not changing array
+    int result = 0;
+    for(int i=0; i<size; i++){
+        result += abs(array[i]);
+    }
+    return result;
 }
 
 
@@ -87,4 +135,100 @@ __kernel void check_monom( __global const char *f, //function vector
   abs_sum_array(walsh_res + count, count_per_item);//second half
 
   res[leftmost_coord  | monom] = (char)(walsh_res[0]<walsh_res[count_per_item]);
+}
+
+__kernel void linear_decode(__global const char *f, __global char *res, __global const int* n_ptr, __local int* walsh_res){
+    int local_id = get_local_id(0);
+    const int local_size = get_local_size(0);
+    __local int half_count;
+    __local int begin;
+    __local int abs_sum_1;
+    __local int abs_sum_2;
+    __local int test;
+    if(local_id == 0){
+        test = 0;
+        begin = 0;
+        half_count = 1 << (*n_ptr - 1);
+    }
+    map_to_real(f,walsh_res, half_count*2);
+    while(local_size < half_count){
+        int count_per_item = half_count / local_size;
+        for(int i=0; i<count_per_item; i++){
+          int first_coord = begin + i*local_size + local_id;
+          int second_coord = first_coord + half_count;
+
+          int f1 = walsh_res[first_coord];
+          int f2 = walsh_res[second_coord];
+
+          walsh_res[first_coord] =  f1 + f2;
+          walsh_res[second_coord] = f1 - f2;
+          printf("Test: %d Item: %d Count:%d Begin:%d i1:%d i2:%d f1:%d f2:%d w1:%d w2:%d\n",
+          test, local_id, half_count*2, begin, first_coord, second_coord, f1, f2, walsh_res[first_coord], walsh_res[second_coord]);
+        }
+        barrier(CLK_LOCAL_MEM_FENCE);
+        if(get_local_id(0) == 0 )
+           abs_sum_1 = seq_abs_sum_array(walsh_res + begin, half_count);
+        if(get_local_id(0) == 1 )
+           abs_sum_2 = seq_abs_sum_array(walsh_res + begin + half_count, half_count);
+        barrier(CLK_LOCAL_MEM_FENCE);
+        if(local_id == 0){
+           if(abs_sum_1 < abs_sum_2){
+               begin += half_count;
+           }
+           test++;
+           half_count /= 2;
+        }
+        barrier(CLK_LOCAL_MEM_FENCE);
+    }
+
+//    barrier(CLK_LOCAL_MEM_FENCE);
+    while(half_count > 0 && local_id < half_count){
+       int first_coord = begin + local_id;
+       int second_coord = first_coord + half_count;
+
+       int f1 = walsh_res[first_coord];
+       int f2 = walsh_res[second_coord];
+
+       walsh_res[first_coord] =  f1 + f2;
+       walsh_res[second_coord ] = f1 - f2;
+       printf("Test:%d Item: %d Count:%d Begin:%d i1:%d i2:%d f1:%d f2:%d w1:%d w2:%d\n",
+       test, local_id, half_count*2, begin, first_coord, second_coord, f1, f2, walsh_res[first_coord], walsh_res[second_coord]);
+//       barrier(CLK_GLOBAL_MEM_FENCE|CLK_LOCAL_MEM_FENCE);
+       if(local_id == 0 ){
+//            for(int i=0; i<8; i++){
+//                printf("%d ", walsh_res[i]);
+//            }
+//            printf("\n");
+            abs_sum_1 = seq_abs_sum_array(walsh_res + begin, half_count);
+            //printf("Count:%d Begin:%d abs_sum_1: %d\n", half_count*2, begin, abs_sum_1);
+       }
+       if(local_id == 1 ){
+            abs_sum_2 = seq_abs_sum_array(walsh_res + begin + half_count, half_count);
+            //printf("Count:%d Begin:%d abs_sum_2: %d\n", half_count*2, begin, abs_sum_2);
+       }
+       //barrier(CLK_GLOBAL_MEM_FENCE | CLK_LOCAL_MEM_FENCE);
+//       printf("Count:%d Begin:%d local_id: %d\n", half_count*2, begin, local_id);
+       barrier( CLK_LOCAL_MEM_FENCE);
+       if(local_id == 0){
+          if(abs_sum_1 < abs_sum_2){
+              begin += half_count;
+          }
+          test++;
+          half_count /= 2;
+       }
+//       barrier(CLK_LOCAL_MEM_FENCE);
+    }
+    barrier(CLK_LOCAL_MEM_FENCE);
+    //printf("%d",local_id);
+    if(local_id == 1){
+        if(abs(walsh_res[begin+1]) > abs(walsh_res[begin]))
+            begin = begin+1;
+        printf("%d %d\n", begin, walsh_res[begin]);
+        //for(int i=0;i < 1<<*n_ptr; i++ )printf("%d", walsh_res[i]);
+        for(int i=0; i < *n_ptr; i++){
+            res[1 << i] = (begin & 1<<i) != 0;
+        }
+//        printf("\n%d\n", walsh_res[begin]);
+        res[0] = walsh_res[begin] < 0;
+    }
 }
