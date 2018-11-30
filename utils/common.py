@@ -18,7 +18,8 @@ class UtilsCommon:
 
     @staticmethod
     def get_weight(var_int, lim=32):
-        bin(var_int)[0: (lim - 1)].count("1")
+        bin_str = bin(var_int)[2:]
+        return bin_str[-lim:].count("1")
 
     @staticmethod
     def iterate_ints(callback, lim=32):
@@ -32,7 +33,8 @@ class UtilsCommon:
 
     @staticmethod
     def np_array_to_str(array):
-        return np.array_str(array)
+        # return np.array_str(array)
+        return np.array2string(array, precision=1, separator='')[1: -1]
 
     @staticmethod
     def to_one(x):
