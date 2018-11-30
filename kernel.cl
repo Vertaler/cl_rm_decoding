@@ -129,6 +129,24 @@ __kernel void xor_arrays(__global char *first, __global char *second){
     first[global_id] ^= second[global_id];
 }
 
+__kernel void mobius_transform(__global const char *input, __global char *output, __global int *n_ptr){
+    int offset = 1 << (*n_ptr-1);
+    int global_id = get_global_id(0);
+    output[global_id] = input[global_id];
+    //printf("id: %d,  offset: %d\n", global_id, offset);
+    while(offset){
+        if(!(global_id & offset)){
+            output[global_id | offset] = output[global_id] ^ output[global_id | offset];
+        }
+        offset /= 2;
+        barrier(CLK_GLOBAL_MEM_FENCE);
+        if(global_id == 0){
+            //for(int i=0; i<1<<(*n_ptr); i++) printf("%d ",output[i]);
+            //printf("\n");
+        }
+    }
+}
+
 __kernel void linear_decode(__global const char *f, __global char *res, __global const int* n_ptr, __local int* walsh_res){
     int local_id = get_local_id(0);
     const int local_size = get_local_size(0);
