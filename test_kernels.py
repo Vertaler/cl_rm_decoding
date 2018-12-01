@@ -2,7 +2,7 @@ import pyopencl as cl
 import numpy as np
 import unittest
 
-N = 7
+N = 5
 WORKGROUP_SIZE = 64
 mf = cl.mem_flags
 
@@ -24,19 +24,23 @@ class TestKernels(unittest.TestCase):
         f = f1 ^ fn ^ f_ones ^ f1 * fn
 
         f_g = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=f)
-        monoms = np.array([2 ** (N - 1) + 1]).astype(np.int32)
+        monoms = np.array(
+            [2 ** (N - 1) + 1, #in f
+             3, #not in f
+             5] #not in f
+        ).astype(np.int32)
         monoms_g = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=monoms)
 
         res = np.zeros(2 ** N).astype(np.int8)
         res_g = cl.Buffer(self.ctx, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=res)
-        m = N-2
+        m = N - 2
 
-        local_size = min(256, 2**m)
+        local_size = min(256, 2 ** m)
         kernel = self.prg.check_monom
-        kernel.set_scalar_arg_dtypes( [None,None, np.int32, None, None,] )
-        kernel(self.queue, (local_size,), (local_size,),
-                             f_g, monoms_g, m, res_g, cl.LocalMemory(4*2 ** m)
-                             )
+        kernel.set_scalar_arg_dtypes([None, None, np.int32, None, None, ])
+        kernel(self.queue, (len(monoms)*local_size,), (local_size,),
+               f_g, monoms_g, m, res_g, cl.LocalMemory(4 * 2 ** m)
+               )
         cl.enqueue_copy(self.queue, res, res_g)
 
         actual = list(res)
@@ -61,8 +65,8 @@ class TestKernels(unittest.TestCase):
         res_g = cl.Buffer(self.ctx, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=res)
 
         kernel = self.prg.linear_decode
-        kernel.set_scalar_arg_dtypes( [None,None, np.int32, None] )
-        kernel(self.queue, (2 ** N,), (WORKGROUP_SIZE,), f_g, res_g, N, walsh_res_g)
+        kernel.set_scalar_arg_dtypes([None, None, np.int32, None])
+        kernel(self.queue, (WORKGROUP_SIZE,), (WORKGROUP_SIZE,), f_g, res_g, N, walsh_res_g)
         cl.enqueue_copy(self.queue, res, res_g)
 
         actual_terms = list(res.nonzero()[0])
@@ -87,7 +91,7 @@ class TestKernels(unittest.TestCase):
         res_g = cl.Buffer(self.ctx, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=res)
 
         kernel = self.prg.mobius_transform
-        kernel.set_scalar_arg_dtypes( [None,None, np.int32] )
+        kernel.set_scalar_arg_dtypes([None, None, np.int32])
         kernel(self.queue, f.shape, None, f_g, res_g, N)
         cl.enqueue_copy(self.queue, res, res_g)
 

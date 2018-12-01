@@ -95,27 +95,33 @@ __kernel void check_monom( __global const char *f, //function vector
   int count_per_item = count / local_size;
   int leftmost_coord = get_leftmost_coord_of_monom(monom);
 
+  if(get_global_id(0) == 0){
+    for(int i=0; i<32; i++){
+        printf("%d ",f[i]);
+    }
+    printf("\n");
+  }
   LOG("Local Size: %d CNT: %d CNT_PER_ITEM: %d ", local_size, count, count_per_item);
   //monom &= ~(leftmost_coord);
   for(int i=0; i<count_per_item; i++){
       int first_coord = get_ith_elem_of_subfunc(i*local_size  + local_id, monom, m) & ~leftmost_coord;
       int second_coord = get_ith_elem_of_subfunc(i*local_size + local_id, monom, m)  | leftmost_coord;
-
       int f1 = to_real(f[first_coord]);
       int f2 = to_real(f[second_coord]);
 
       walsh_res[i*local_size + local_id] =  f1 + f2;
       walsh_res[i*local_size + local_id + count] = f1 - f2;
-      LOG("f[%d]=%d f[%d]=%d f1+f2=%d f1-f2=%d\n", first_coord, f1, second_coord, f2,
+      printf("f[%d]=%d f[%d]=%d f1+f2=%d f1-f2=%d\n", first_coord, f1, second_coord, f2,
       walsh_res[i*local_size + local_id],walsh_res[i*local_size + local_id + count ]);
   }
+  printf("\n");
   barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
   if(local_id == 0){
-    LOG("Walsh transform step result: ");
+    printf(" Walsh transform step result for monom %d: ", monom);
     for(int i=0; i < local_size *2; i++){
-        LOG("%d ", walsh_res[i]);
+        printf("%d ", walsh_res[i]);
     }
-    LOG("\n");
+    printf("\n");
   }
 
   barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
@@ -126,7 +132,7 @@ __kernel void check_monom( __global const char *f, //function vector
   if(local_id == 0){
     LOG("ABS_SUM1: %d, ABS_SUM2: %d \n", walsh_res[0], walsh_res[count]);
   }
-  res[leftmost_coord  | monom] = (char)(walsh_res[0]>walsh_res[count]);
+  res[leftmost_coord  | monom] = (char)(walsh_res[0]<walsh_res[count]);
 }
 
 __kernel void xor_arrays(__global char *first, __global char *second){
