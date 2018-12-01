@@ -33,7 +33,7 @@ int to_real(char bool_func_elem){
 }
 
 //DECLARE_MAP(int)
-void map_to_real(__global const char* source, __local int* dest, int size){
+void map_to_real(__global const char* source, __global int* dest, int size){
     int local_size = get_local_size(0);
     int local_id = get_local_id(0);
     int size_per_item = size / local_size;
@@ -49,7 +49,7 @@ void map_to_real(__global const char* source, __local int* dest, int size){
     barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
 }
 
-void abs_sum_array(__global int *array, int size_per_item){
+void abs_sum_array(__local int *array, int size_per_item){
     // assume size of array is 2^k
     // change array
     // save result in array[0]
@@ -70,7 +70,7 @@ void abs_sum_array(__global int *array, int size_per_item){
     }
 }
 
-int seq_abs_sum_array(__local int *array, int size){
+int seq_abs_sum_array(__global int *array, int size){
     // does not changing array
     int result = 0;
     for(int i=0; i<size; i++){
@@ -83,8 +83,8 @@ int seq_abs_sum_array(__local int *array, int size){
 __kernel void check_monom( __global const char *f, //function vector
                            __global const int *monoms,//array with binary coded monoms
                            __global const int *mm, //m = n-r
-                           __global int *walsh_res, //local array to store result of one step of walsh transform
-                           __global char *res//result vector
+                           __global char *res,//result vector
+                           __local  int *walsh_res //local array to store result of one step of walsh transform
                            )
 {
   int group_id = get_group_id(0);
@@ -95,21 +95,24 @@ __kernel void check_monom( __global const char *f, //function vector
   int count = 1 << m;
   int count_per_item = count / local_size;
   int leftmost_coord = get_leftmost_coord_of_monom(monom);
+
+  LOG("Local Size: %d CNT: %d CNT_PER_ITEM: %d ", local_size, count, count_per_item);
   //monom &= ~(leftmost_coord);
   for(int i=0; i<count_per_item; i++){
-      //todo optimize
       int first_coord = get_ith_elem_of_subfunc(i*local_size  + local_id, monom, m) & ~leftmost_coord;
       int second_coord = get_ith_elem_of_subfunc(i*local_size + local_id, monom, m)  | leftmost_coord;
 
-      char f1 = to_real(f[first_coord]);
-      char f2 = to_real(f[second_coord]);
-      printf("%d %d \n", first_coord, second_coord);
+      int f1 = to_real(f[first_coord]);
+      int f2 = to_real(f[second_coord]);
 
-      walsh_res[first_coord] =  f1 + f2;
-      walsh_res[second_coord ] = f1 - f2;
+      walsh_res[i*local_size + local_id] =  f1 + f2;
+      walsh_res[i*local_size + local_id + count] = f1 - f2;
+      LOG("f[%d]=%d f[%d]=%d f1+f2=%d f1-f2=%d\n", first_coord, f1, second_coord, f2,
+      walsh_res[i*local_size + local_id],walsh_res[i*local_size + local_id + count ]);
   }
   barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
   if(local_id == 0){
+    LOG("Walsh transform step result: ");
     for(int i=0; i < local_size *2; i++){
         printf("%d ", walsh_res[i]);
     }
@@ -117,11 +120,14 @@ __kernel void check_monom( __global const char *f, //function vector
   }
 
   barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
-  abs_sum_array(walsh_res, count_per_item);
+  abs_sum_array(walsh_res, count);
   barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
-  abs_sum_array(walsh_res + count, count_per_item);//second half
+  abs_sum_array(walsh_res + count, count);//second half
 
-  res[leftmost_coord  | monom] = (char)(walsh_res[0]<walsh_res[count_per_item]);
+  if(local_id == 0){
+    LOG("ABS_SUM1: %d, ABS_SUM2: %d \n", walsh_res[0], walsh_res[count]);
+  }
+  res[leftmost_coord  | monom] = (char)(walsh_res[0]>walsh_res[count]);
 }
 
 __kernel void xor_arrays(__global char *first, __global char *second){
@@ -147,7 +153,7 @@ __kernel void mobius_transform(__global const char *input, __global char *output
     }
 }
 
-__kernel void linear_decode(__global const char *f, __global char *res, __global const int* n_ptr, __local int* walsh_res){
+__kernel void linear_decode(__global const char *f, __global char *res, __global const int* n_ptr, __global int* walsh_res){
     int local_id = get_local_id(0);
     const int local_size = get_local_size(0);
     __local int half_count;
@@ -175,12 +181,12 @@ __kernel void linear_decode(__global const char *f, __global char *res, __global
           LOG("Layer: %d Item: %d Count:%d Begin:%d i1:%d i2:%d f1:%d f2:%d w1:%d w2:%d\n",
           layer, local_id, half_count*2, begin, first_coord, second_coord, f1, f2, walsh_res[first_coord], walsh_res[second_coord]);
         }
-        barrier(CLK_LOCAL_MEM_FENCE);
+        barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
         if(get_local_id(0) == 0 )
            abs_sum_1 = seq_abs_sum_array(walsh_res + begin, half_count);
         if(get_local_id(0) == 1 )
            abs_sum_2 = seq_abs_sum_array(walsh_res + begin + half_count, half_count);
-        barrier(CLK_LOCAL_MEM_FENCE);
+        barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
         if(local_id == 0){
            if(abs_sum_1 < abs_sum_2){
                begin += half_count;
@@ -188,7 +194,7 @@ __kernel void linear_decode(__global const char *f, __global char *res, __global
            layer++;
            half_count /= 2;
         }
-        barrier(CLK_LOCAL_MEM_FENCE);
+        barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
     }
 
     while(half_count > 0 && local_id < half_count){
@@ -208,7 +214,7 @@ __kernel void linear_decode(__global const char *f, __global char *res, __global
        if(local_id == 1 ){
             abs_sum_2 = seq_abs_sum_array(walsh_res + begin + half_count, half_count);
        }
-       barrier( CLK_LOCAL_MEM_FENCE);
+       barrier( CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
        if(local_id == 0){
           if(abs_sum_1 < abs_sum_2){
               begin += half_count;
@@ -217,7 +223,7 @@ __kernel void linear_decode(__global const char *f, __global char *res, __global
           half_count /= 2;
        }
     }
-    barrier(CLK_LOCAL_MEM_FENCE);
+    barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
     if(local_id == 1){
         if(abs(walsh_res[begin+1]) > abs(walsh_res[begin]))
             begin = begin+1;
