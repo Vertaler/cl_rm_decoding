@@ -82,7 +82,7 @@ int seq_abs_sum_array(__global int *array, int size){
 
 __kernel void check_monom( __global const char *f, //function vector
                            __global const int *monoms,//array with binary coded monoms
-                           __global const int *mm, //m = n-r
+                           int m, //m = n-r
                            __global char *res,//result vector
                            __local  int *walsh_res //local array to store result of one step of walsh transform
                            )
@@ -91,7 +91,6 @@ __kernel void check_monom( __global const char *f, //function vector
   int local_id = get_local_id(0);
   int local_size = get_local_size(0);
   int monom = monoms[group_id];
-  int m = mm[0];
   int count = 1 << m;
   int count_per_item = count / local_size;
   int leftmost_coord = get_leftmost_coord_of_monom(monom);
@@ -114,9 +113,9 @@ __kernel void check_monom( __global const char *f, //function vector
   if(local_id == 0){
     LOG("Walsh transform step result: ");
     for(int i=0; i < local_size *2; i++){
-        printf("%d ", walsh_res[i]);
+        LOG("%d ", walsh_res[i]);
     }
-    printf("\n");
+    LOG("\n");
   }
 
   barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
@@ -135,25 +134,20 @@ __kernel void xor_arrays(__global char *first, __global char *second){
     first[global_id] ^= second[global_id];
 }
 
-__kernel void mobius_transform(__global const char *input, __global char *output, __global int *n_ptr){
-    int offset = 1 << (*n_ptr-1);
+__kernel void mobius_transform(__global const char *input, __global char *output, int n){
+    int offset = 1 << (n-1);
     int global_id = get_global_id(0);
     output[global_id] = input[global_id];
-    //printf("id: %d,  offset: %d\n", global_id, offset);
     while(offset){
         if(!(global_id & offset)){
             output[global_id | offset] = output[global_id] ^ output[global_id | offset];
         }
         offset /= 2;
-        barrier(CLK_GLOBAL_MEM_FENCE);
-        if(global_id == 0){
-            //for(int i=0; i<1<<(*n_ptr); i++) printf("%d ",output[i]);
-            //printf("\n");
-        }
+        //barrier(CLK_GLOBAL_MEM_FENCE);
     }
 }
 
-__kernel void linear_decode(__global const char *f, __global char *res, __global const int* n_ptr, __global int* walsh_res){
+__kernel void linear_decode(__global const char *f, __global char *res, int n, __global int* walsh_res){
     int local_id = get_local_id(0);
     const int local_size = get_local_size(0);
     __local int half_count;
@@ -164,7 +158,7 @@ __kernel void linear_decode(__global const char *f, __global char *res, __global
     if(local_id == 0){
         layer = 0;
         begin = 0;
-        half_count = 1 << (*n_ptr - 1);
+        half_count = 1 << (n - 1);
     }
     map_to_real(f,walsh_res, half_count*2);
     while(local_size < half_count){
@@ -228,7 +222,7 @@ __kernel void linear_decode(__global const char *f, __global char *res, __global
         if(abs(walsh_res[begin+1]) > abs(walsh_res[begin]))
             begin = begin+1;
         LOG("%d %d\n", begin, walsh_res[begin]);
-        for(int i=0; i < *n_ptr; i++){
+        for(int i=0; i < n; i++){
             res[1 << i] = (begin & 1<<i) != 0;
         }
         res[0] = walsh_res[begin] < 0;
