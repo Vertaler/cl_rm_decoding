@@ -2,7 +2,7 @@ import pyopencl as cl
 import numpy as np
 import unittest
 
-N = 5
+N = 8
 WORKGROUP_SIZE = 64
 mf = cl.mem_flags
 
@@ -22,6 +22,9 @@ class TestKernels(unittest.TestCase):
         f_ones = np.ones(2 ** N).astype(np.int8)
 
         f = f1 ^ fn ^ f_ones ^ f1 * fn
+        # some errors
+        f[0] ^= 1
+        f[1] ^= 1
 
         f_g = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=f)
         monoms = np.array(
@@ -37,9 +40,9 @@ class TestKernels(unittest.TestCase):
 
         local_size = min(256, 2 ** m)
         kernel = self.prg.check_monom
-        kernel.set_scalar_arg_dtypes([None, None, np.int32, None, None, ])
+        kernel.set_scalar_arg_dtypes([None, None, np.int32, np.int32, None, None, ])
         kernel(self.queue, (len(monoms)*local_size,), (local_size,),
-               f_g, monoms_g, m, res_g, cl.LocalMemory(4 * 2 ** m)
+               f_g, monoms_g, m, 2, res_g, cl.LocalMemory(2 ** m)
                )
         cl.enqueue_copy(self.queue, res, res_g)
 

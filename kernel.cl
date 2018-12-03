@@ -79,12 +79,37 @@ int seq_abs_sum_array(__global int *array, int size){
     return result;
 }
 
+void edge_sum_for_monom(
+    __global const char *f,
+    __local char *edge_sum,
+    int monom,
+    int edge_index ,
+    int m,
+    int r
+    )
+{
+    int local_id = get_local_id(0);
+    int bound = 1 << r;
+    int edge_vars = monom;// 1-*, 0-some constant
+    int edge_consts = get_ith_elem_of_subfunc(edge_index, monom, m) & ~monom;
+    printf("Monom %d edge %d: ", monom, edge_consts);
+
+    edge_sum[edge_index] = 0;
+    for(int i=0; i< bound; i++){
+        int index = get_ith_elem_of_subfunc(i, ~edge_vars, r) & (edge_vars|edge_consts);
+        printf("%d ", f[index]);
+        edge_sum[edge_index] ^= f[index];
+    }
+    printf("\n");
+
+}
 
 __kernel void check_monom( __global const char *f, //function vector
                            __global const int *monoms,//array with binary coded monoms
                            int m, //m = n-r
+                           int r,
                            __global char *res,//result vector
-                           __local  int *walsh_res //local array to store result of one step of walsh transform
+                           __local  char *edge_sums//local array to store result of one step of walsh transform
                            )
 {
   int group_id = get_group_id(0);
@@ -93,46 +118,30 @@ __kernel void check_monom( __global const char *f, //function vector
   int monom = monoms[group_id];
   int count = 1 << m;
   int count_per_item = count / local_size;
-  int leftmost_coord = get_leftmost_coord_of_monom(monom);
 
   if(get_global_id(0) == 0){
-    for(int i=0; i<32; i++){
-        printf("%d ",f[i]);
+    for(int i=0; i< 1 <<(r+m); i++){
+        printf(" %d ",f[i]);
     }
     printf("\n");
   }
   LOG("Local Size: %d CNT: %d CNT_PER_ITEM: %d ", local_size, count, count_per_item);
   //monom &= ~(leftmost_coord);
   for(int i=0; i<count_per_item; i++){
-      int first_coord = get_ith_elem_of_subfunc(i*local_size  + local_id, monom, m) & ~leftmost_coord;
-      int second_coord = get_ith_elem_of_subfunc(i*local_size + local_id, monom, m)  | leftmost_coord;
-      int f1 = to_real(f[first_coord]);
-      int f2 = to_real(f[second_coord]);
-
-      walsh_res[i*local_size + local_id] =  f1 + f2;
-      walsh_res[i*local_size + local_id + count] = f1 - f2;
-      printf("f[%d]=%d f[%d]=%d f1+f2=%d f1-f2=%d\n", first_coord, f1, second_coord, f2,
-      walsh_res[i*local_size + local_id],walsh_res[i*local_size + local_id + count ]);
+    int edge_index = i*local_size + local_id;
+    edge_sum_for_monom(f, edge_sums, monom, edge_index, m, r);
   }
-  printf("\n");
+//  printf("\n");
   barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
   if(local_id == 0){
-    printf(" Walsh transform step result for monom %d: ", monom);
-    for(int i=0; i < local_size *2; i++){
-        printf("%d ", walsh_res[i]);
+    int sum = 0;
+    printf("Total sum for monom %d: ", monom);
+    for(int i=0; i < count; i++){
+        printf("%d ", edge_sums[i]);
+        sum += edge_sums[i];
     }
-    printf("\n");
+    res[monom] = sum > (count/2);
   }
-
-  barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
-  abs_sum_array(walsh_res, count);
-  barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
-  abs_sum_array(walsh_res + count, count);//second half
-
-  if(local_id == 0){
-    LOG("ABS_SUM1: %d, ABS_SUM2: %d \n", walsh_res[0], walsh_res[count]);
-  }
-  res[leftmost_coord  | monom] = (char)(walsh_res[0]<walsh_res[count]);
 }
 
 __kernel void xor_arrays(__global char *first, __global char *second){
