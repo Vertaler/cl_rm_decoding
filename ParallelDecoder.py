@@ -25,7 +25,7 @@ class ParallelDecoder:
         self.kernel_xor_arrays = self.prg.xor_arrays
 
         self.kernel_linear_decode.set_scalar_arg_dtypes([None, None, np.int32, None])
-        self.kernel_check_monom.set_scalar_arg_dtypes([None, None, np.int32, None, None])
+        self.kernel_check_monom.set_scalar_arg_dtypes([None, None, np.int32, np.int32, None, None])
         self.kernel_mobius_transform.set_scalar_arg_dtypes([None, None, np.int32])
 
     def _compute_monoms(self):
@@ -61,8 +61,9 @@ class ParallelDecoder:
                 f_g,
                 mon_g,
                 m,
+                i,
                 step_res_g,
-                cl.LocalMemory(4 * 2 ** m)
+                cl.LocalMemory(2 ** m)
             )
 
             self.kernel_xor_arrays(

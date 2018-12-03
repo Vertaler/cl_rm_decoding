@@ -2,7 +2,7 @@ import unittest
 import numpy as np
 from ParallelDecoder import ParallelDecoder
 
-n = 5
+n = 6
 r = 2
 
 class TestParallelDecoder(unittest.TestCase):
