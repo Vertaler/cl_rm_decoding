@@ -41,6 +41,7 @@ class RMCoder:
             if (2 * cur_vote_num) > (1 << n):  # const = 1
                 for i in range(1 << n):
                     word_to_decode[i] ^= 1
+                decoded_anf[0] = 1
             return
 
         anf_to_cut_off = np.array([0] * (1 << n))

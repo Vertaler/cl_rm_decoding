@@ -37,9 +37,9 @@ class WalshTransform:
             return
         for i in range(l, mid + 1):
             tmp_el_1 = array[i]
-            tmp_el_2 = array[i + mid + 1]
+            tmp_el_2 = array[mid + 1 + i - l]
             array[i] = tmp_el_1 + tmp_el_2
-            array[i + mid + 1] = tmp_el_1 - tmp_el_2
+            array[mid + 1 + i - l] = tmp_el_1 - tmp_el_2
 
     @staticmethod
     def exec_with_indexes(array, indx_array, copy=True):
@@ -71,9 +71,9 @@ class WalshTransform:
             return
         for i in range(l, mid + 1):
             tmp_el_1 = array[indx_array[i]]
-            tmp_el_2 = array[indx_array[i + mid + 1]]
+            tmp_el_2 = array[indx_array[mid + 1 + i - l]]
             array[indx_array[i]] = tmp_el_1 + tmp_el_2
-            array[indx_array[i + mid + 1]] = tmp_el_1 - tmp_el_2
+            array[indx_array[mid + 1 + i - l]] = tmp_el_1 - tmp_el_2
 
     # returns coef for monom
     @staticmethod
@@ -92,7 +92,7 @@ class WalshTransform:
         strength_of_existing = 0
         for i in range(l, mid + 1):
             tmp_el_1 = array[indx_array[i]]
-            tmp_el_2 = array[indx_array[i + mid + 1]]
+            tmp_el_2 = array[indx_array[mid + 1 + i - l]]
             strength_of_existing += abs(tmp_el_1 - tmp_el_2)
             strength_of_not_existing += abs(tmp_el_1 + tmp_el_2)
 
