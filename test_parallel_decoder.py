@@ -2,7 +2,7 @@ import unittest
 import numpy as np
 from ParallelDecoder import ParallelDecoder
 
-n = 6
+n = 15
 r = 2
 
 class TestParallelDecoder(unittest.TestCase):
@@ -18,13 +18,10 @@ class TestParallelDecoder(unittest.TestCase):
         f = f1 ^ fn ^ f_ones ^ f1 * fn
         decoded = self.decoder.decode(f)
 
-        expected = [0,1,2**(n-1),1 | 2**(n-1)]
+        expected = [0, 1,2**(n-1),1 | 2**(n-1)]
         actual = list(decoded.nonzero()[0])
 
         self.assertListEqual(expected, actual)
-
-
-
 
 if __name__ == "__main__":
     unittest.main()

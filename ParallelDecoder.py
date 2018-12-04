@@ -29,30 +29,32 @@ class ParallelDecoder:
         self.kernel_mobius_transform.set_scalar_arg_dtypes([None, None, np.int32])
 
     def _compute_monoms(self):
-        for i in range(2, self.r + 1):
+        for i in range(0, self.r + 1):
             self.monoms[i] = []
         for i in range(2 ** self.n):
             weight = UtilsCommon.get_weight(i)
-            if 1 < weight <= self.r:
+            if -1 < weight <= self.r:
                 self.monoms[weight].append(i)
-        for i in range(2, self.r + 1):
+        for i in range(0, self.r + 1):
             self.monoms[i] = np.array(self.monoms[i]).astype(np.int32)
 
     def decode(self, f):
         f_copy = np.copy(f).astype(np.int8)
-        step_res = np.zeros(f.shape).astype(np.int8)
+        check_monom_res = np.zeros(f.shape).astype(np.int8)
+        mobius_res = np.zeros(f.shape).astype(np.int8)
         total_res = np.zeros(f.shape).astype(np.int8)
         f_g = cl.Buffer(self.ctx, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=f_copy)
+        mobius_res_g = cl.Buffer(self.ctx, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=mobius_res)
         total_res_g = cl.Buffer(self.ctx, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=total_res)
-        step_res_g = cl.Buffer(self.ctx, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=step_res)
+        check_monon_res_g = cl.Buffer(self.ctx, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=check_monom_res)
 
-        for i in range(self.r, 1, -1):
+        for i in range(self.r, -1, -1):
             mon_g = cl.Buffer(self.ctx, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=self.monoms[i])
             m = self.n - i
             local_size = min(2 ** m, 256)  # todo change 256 to device max local size
             global_size = UtilsCommon.C_n_r(self.n, i) * local_size
-
-            local_size = min(256, 2 ** m)
+            check_monom_res *= 0
+            cl.enqueue_copy(self.queue, check_monon_res_g, check_monom_res)
 
             self.kernel_check_monom(
                 self.queue,
@@ -62,7 +64,7 @@ class ParallelDecoder:
                 mon_g,
                 m,
                 i,
-                step_res_g,
+                check_monon_res_g,
                 cl.LocalMemory(2 ** m)
             )
 
@@ -71,15 +73,15 @@ class ParallelDecoder:
                 f.shape,
                 None,
                 total_res_g,
-                step_res_g
+                check_monon_res_g
             )
 
             self.kernel_mobius_transform(
                 self.queue,
-                f.shape,
-                None,
-                step_res_g,
-                step_res_g,
+                (local_size,),
+                (local_size,),
+                check_monon_res_g,
+                mobius_res_g,
                 self.n
             )
 
@@ -88,21 +90,20 @@ class ParallelDecoder:
                 f.shape,
                 None,
                 f_g,
-                step_res_g
+                mobius_res_g
             )
-            cl.enqueue_copy(self.queue, step_res_g, step_res)
 
-        walsh_res = np.zeros(f.shape).astype(np.int32)
-        walsh_res_g = cl.Buffer(self.ctx, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=walsh_res)
-        local_size = min(2 ** self.n, 256)
-        self.kernel_linear_decode(
-            self.queue,
-            (local_size,),
-            (local_size,),
-            f_g,
-            total_res_g,
-            self.n,
-            walsh_res_g
-        )
+        # walsh_res = np.zeros(f.shape).astype(np.int32)
+        # walsh_res_g = cl.Buffer(self.ctx, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=walsh_res)
+        # local_size = min(2 ** self.n, 256)
+        # self.kernel_linear_decode(
+        #     self.queue,
+        #     (local_size,),
+        #     (local_size,),
+        #     f_g,
+        #     total_res_g,
+        #     self.n,
+        #     walsh_res_g
+        # )
         cl.enqueue_copy(self.queue, total_res, total_res_g)
         return total_res

@@ -2,7 +2,7 @@ import pyopencl as cl
 import numpy as np
 import unittest
 
-N = 16
+N = 14
 WORKGROUP_SIZE = 64
 mf = cl.mem_flags
 
@@ -16,6 +16,30 @@ class TestKernels(unittest.TestCase):
         with open('kernel.cl') as program_file:
             program_text = program_file.read()
         self.prg = cl.Program(self.ctx, program_text).build()
+
+    def test_check_monom_for_constant_func(self):
+        f =  np.ones(2 ** N).astype(np.int8)
+        f_g = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=f)
+        monoms = np.array([0]).astype(np.int32)
+        monoms_g = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=monoms)
+
+        res = np.zeros(2 ** N).astype(np.int8)
+        res_g = cl.Buffer(self.ctx, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=res)
+
+
+        local_size = min(256, 2 ** N)
+        kernel = self.prg.check_monom
+        kernel.set_scalar_arg_dtypes([None, None, np.int32, np.int32, None, None, ])
+        kernel(self.queue, (len(monoms) * local_size,), (local_size,),
+               f_g, monoms_g, N, 0, res_g, cl.LocalMemory(2 ** N)
+               )
+        cl.enqueue_copy(self.queue, res, res_g)
+
+        actual = list(res)
+        expected = [0] * 2 ** N
+        expected[monoms[0]] = 1
+
+        self.assertListEqual(actual, expected)
 
     def test_check_monom(self):
         f1 = np.array([0] * 2 ** (N - 1) + [1] * 2 ** (N - 1)).astype(np.int8)
@@ -53,7 +77,7 @@ class TestKernels(unittest.TestCase):
 
         self.assertListEqual(actual, expected)
 
-    @unittest.skip
+    # @unittest.skip("Crashes on INTEL platform")
     def test_linear_decoding(self):
         f1 = np.array([0] * 2 ** (N - 1) + [1] * 2 ** (N - 1)).astype(np.int8)
         fn = np.array([0, 1] * 2 ** (N - 1)).astype(np.int8)
@@ -69,17 +93,18 @@ class TestKernels(unittest.TestCase):
         res = np.zeros(2 ** N).astype(np.int8)
         res_g = cl.Buffer(self.ctx, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=res)
 
+        local_size = min(WORKGROUP_SIZE, 2 ** N)
         kernel = self.prg.linear_decode
         kernel.set_scalar_arg_dtypes([None, None, np.int32, None])
-        kernel(self.queue, (WORKGROUP_SIZE,), (WORKGROUP_SIZE,), f_g, res_g, N, walsh_res_g)
+        kernel(self.queue, (local_size,), (local_size,), f_g, res_g, N, walsh_res_g)
         cl.enqueue_copy(self.queue, res, res_g)
-
         actual_terms = list(res.nonzero()[0])
         expected_terms = [
             0,  # 1 +
             2 ** 0,  # x_n +
             2 ** (N - 1),  # x_1
         ]
+        print("OK!")
 
         self.assertListEqual(actual_terms, expected_terms)
 
