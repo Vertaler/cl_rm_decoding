@@ -11,8 +11,10 @@ class RMCodeWord:
         self.encoded_word = encoded_word
         self.errors = errors
         self.encoded_with_errors = None
-        self.decoded = np.array([0] * (1 << self.rm_code_info.n))
+        self.decoded = None
         pass
 
     def bring_some_errors(self):
         self.encoded_with_errors = np.bitwise_or(self.encoded_word, self.errors)
+        self.decoded = np.copy(self.encoded_with_errors)
+

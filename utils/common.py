@@ -17,6 +17,11 @@ class UtilsCommon:
         return (l + r) // 2
 
     @staticmethod
+    def get_i_th_element_of_subfunc(i, flat, n):
+        offset = 0
+        
+
+    @staticmethod
     def get_weight(var_int, lim=32):
         bin_str = bin(var_int)[2:]
         return bin_str[-lim:].count("1")
