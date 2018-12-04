@@ -289,7 +289,7 @@ __kernel void linear_decode(__global const char *f, __global char *res, int n, _
         while(half_count){
             //if(half_count==1) break;
             if(!(index & half_count) && index >= begin){
-                printf("Count %d w[%d]=%d w[%d]=%d ",half_count*2,index,walsh_res[index],index|half_count, walsh_res[index|half_count]);
+                printf("Count %d w[%d]=%d w[%d]=%d  ",half_count*2,index,walsh_res[index],index|half_count, walsh_res[index|half_count]);
                 int tmp = walsh_res[index];
                 walsh_res[index] = walsh_res[index] + walsh_res[index | half_count];
                 walsh_res[index | half_count] = tmp - walsh_res[index | half_count];
@@ -310,6 +310,9 @@ __kernel void linear_decode(__global const char *f, __global char *res, int n, _
     }
 
     if(local_id == 0){
+        if(begin <((1<<n)-1) && walsh_res[begin+1]>walsh_res[begin]){
+            begin += 1;
+        }
         for(int i=0; i < n; i++){
            res[1 << i] = (begin & 1<<i) != 0;
         }

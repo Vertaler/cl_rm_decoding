@@ -2,8 +2,8 @@ import pyopencl as cl
 import numpy as np
 import unittest
 
-N = 14
-WORKGROUP_SIZE = 64
+N = 3
+WORKGROUP_SIZE = 128
 mf = cl.mem_flags
 
 
@@ -104,7 +104,6 @@ class TestKernels(unittest.TestCase):
             2 ** 0,  # x_n +
             2 ** (N - 1),  # x_1
         ]
-        print("OK!")
 
         self.assertListEqual(actual_terms, expected_terms)
 

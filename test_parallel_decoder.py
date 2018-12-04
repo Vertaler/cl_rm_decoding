@@ -1,6 +1,7 @@
 import unittest
 import numpy as np
 from ParallelDecoder import ParallelDecoder
+from SequentialDecoder import SequentialDecoder
 
 n = 15
 r = 2
