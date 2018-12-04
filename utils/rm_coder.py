@@ -23,8 +23,16 @@ class RMCoder:
 
     @staticmethod
     def decode_recursive_core(rm_code_word, cur_deg):
+        if cur_deg < 0:
+            return
+        RMCoder.single_step_core(rm_code_word, cur_deg)
+        return RMCoder.decode_recursive_core(rm_code_word, cur_deg - 1)
+
+    @staticmethod
+    def single_step_core(rm_code_word, cur_deg):
         n = rm_code_word.rm_code_info.n
-        word_to_decode = rm_code_word.decoded
+        word_to_decode = rm_code_word.encoded_with_errors
+        decoded_anf = rm_code_word.decoded
 
         if cur_deg == 0:
             cur_vote_num = 0
@@ -55,11 +63,12 @@ class RMCoder:
                     cur_vote_num += cur_vote
                 if (2 * cur_vote_num) < num_of_flats:
                     anf_to_cut_off[cur_monom] = 0
+                    decoded_anf[cur_monom] = 0
                 else:
                     anf_to_cut_off[cur_monom] = 1
+                    decoded_anf[cur_monom] = 1
 
         func_to_cut_off = MebiusTransform.exec(anf_to_cut_off)
         np.bitwise_xor(word_to_decode, func_to_cut_off)
-        return RMCoder.decode_recursive_core(rm_code_word, cur_deg - 1)
 
 

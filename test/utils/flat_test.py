@@ -4,7 +4,7 @@ from utils.flat import Flat as Flat
 import numpy as np
 
 
-class TestCommon(unittest.TestCase):
+class TestFlat(unittest.TestCase):
 
     def test_merge_by_mask(self):
         self.assertEqual(Flat.merge_by_mask(0b00000000, 0b00000000, 0b00000000, 8), 0b00000000)

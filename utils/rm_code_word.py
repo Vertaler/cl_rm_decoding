@@ -16,5 +16,5 @@ class RMCodeWord:
 
     def bring_some_errors(self):
         self.encoded_with_errors = np.bitwise_or(self.encoded_word, self.errors)
-        self.decoded = np.copy(self.encoded_with_errors)
+        self.decoded = np.copy([0] * (1 << self.rm_code_info.n))
 
