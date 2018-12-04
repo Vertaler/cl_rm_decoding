@@ -1,10 +1,9 @@
-#pragma OPENCL EXTENSION cl_amd_printf : enable
 #ifdef DEBUG
-#define LOG(f, ...) printf((f),__VA_ARGS__)
+#define LOG printf
 #else
-#define LOG(f, ...)
+#define LOG
 #endif
-
+#define INDEX(i) local_size*i + local_id
 int get_leftmost_coord_of_monom(int monom){
     int result = 0;
     for(int i=0; i<32; i++){
@@ -88,7 +87,6 @@ void edge_sum_for_monom(
     int r
     )
 {
-    int local_id = get_local_id(0);
     int bound = 1 << r;
     int edge_vars = monom;// 1-*, 0-some constant
     int edge_consts = get_ith_elem_of_subfunc(edge_index, monom, m) & ~monom;
@@ -135,9 +133,9 @@ __kernel void check_monom( __global const char *f, //function vector
   barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
   if(local_id == 0){
     int sum = 0;
-    printf("Total sum for monom %d: ", monom);
+    LOG("Total sum for monom %d: ", monom);
     for(int i=0; i < count; i++){
-        printf("%d ", edge_sums[i]);
+        LOG("%d ", edge_sums[i]);
         sum += edge_sums[i];
     }
     res[monom] = sum > (count/2);
@@ -149,7 +147,7 @@ __kernel void xor_arrays(__global char *first, __global char *second){
     first[global_id] ^= second[global_id];
 }
 
-__kernel void mobius_transform(__global const char *input, __global char *output, int n){
+__kernel void mobius_transform_old(__global const char *input, __global char *output, int n){
     int offset = 1 << (n-1);
     int global_id = get_global_id(0);
     output[global_id] = input[global_id];
@@ -158,7 +156,34 @@ __kernel void mobius_transform(__global const char *input, __global char *output
             output[global_id | offset] = output[global_id] ^ output[global_id | offset];
         }
         offset /= 2;
-        //barrier(CLK_GLOBAL_MEM_FENCE);
+        barrier(CLK_GLOBAL_MEM_FENCE);
+    }
+}
+
+__kernel void mobius_transform(__global const char *input, __global char *output, int n){
+    int offset = 1 << (n-1);
+    int local_id = get_local_id(0);
+    int local_size = get_local_size(0);
+    int count_per_item = 2*offset / local_size;//total count of elements 2^n=2*offset
+    for(int i=0; i< count_per_item; i++){
+        output[INDEX(i)] = input[INDEX(i)];
+    }
+    barrier(CLK_GLOBAL_MEM_FENCE|CLK_LOCAL_MEM_FENCE);
+    while(offset){
+        LOG("Offset: %d LocID: %d  ", offset, local_id);
+        for(int i=0; i< count_per_item; i++){
+            int index = INDEX(i);
+            //printf("f[%d]=%d ",index, output[index]);
+            if(!(index & offset)){
+                LOG("f[%d]=%d^f[%d]=%d ",index,output[index], index|offset, output[index|offset]);
+                output[index | offset] = output[index] ^ output[index | offset];
+                LOG("new f[%d]=%d  ",index|offset, output[index|offset] );
+            }
+
+        }
+        printf("\n");
+        barrier(CLK_GLOBAL_MEM_FENCE|CLK_LOCAL_MEM_FENCE);
+        offset /= 2;
     }
 }
 
