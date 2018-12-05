@@ -1,7 +1,32 @@
 import math
 import numpy as np
+import timeit
 
 class UtilsCommon:
+
+    DEBUG = False
+
+    @staticmethod
+    def bit_form_anf_from_str(anf_str, n):
+        temp = anf_str.split('+')
+        result = 0
+        for monom in temp:
+            monom = monom.strip(' ')
+            if monom == '1':
+                result ^= 1
+            else:
+                nums = list(filter(lambda x: x.isdecimal(), monom.split('x')))
+                monomPos = 0
+                for num in nums:
+                    assert int(num) <= n, "Function have {0} variables".format(n)
+                    monomPos ^= (1 << n - int(num))
+                result += (1 << monomPos)
+        result = '{0:b}'.format(result)[::-1]
+        result_len = len(result)
+        func_len = 2**n
+        if result_len < func_len:
+            result += '0' * (func_len - result_len)
+        return result
 
     @staticmethod
     def check_string_binary(str):
@@ -60,7 +85,10 @@ class UtilsCommon:
     @staticmethod
     def get_i_th_element_of_subfunc(i, flat, n):
         offset = 0
-        
+
+    @staticmethod
+    def measure_perf(callback, times=1):
+        return timeit.timeit(callback, number=times)
 
     @staticmethod
     def get_weight(var_int, lim=32):
@@ -113,3 +141,8 @@ class UtilsCommon:
     def np_array_from_ones(array, copy=True):
         vec_func = np.vectorize(UtilsCommon.from_one)
         return UtilsCommon.np_array_apply_to_each(array, vec_func, copy)
+
+    @staticmethod
+    def log(message):
+        if UtilsCommon.DEBUG:
+            print(message)
