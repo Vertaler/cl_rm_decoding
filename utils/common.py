@@ -4,7 +4,15 @@ import numpy as np
 class UtilsCommon:
 
     @staticmethod
-    def bit_form_anf_from_str(anf_str, n):
+    def check_string_binary(str):
+        p = set(str)
+        if {'0', '1'} == p or p == {'0'} or p == {'1'}:
+            return True
+        else:
+            return False
+
+    @staticmethod
+    def bin_form_anf_from_str(anf_str, n):
         temp = anf_str.split('+')
         result = 0
         for monom in temp:
