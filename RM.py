@@ -40,6 +40,7 @@ def decode(args):
     if args.binary is None:
         raise AssertionError("Error: nothing to decode")
     assert uc.check_string_binary(args.binary), "Error: can't handle non binary word"
+    word = args.binary
     if args.mode == 'p':
         decoder = ParallelDecoder(args.n, args.r)
     else:
@@ -52,9 +53,11 @@ if __name__ == "__main__":
     args = sys.argv
     ap = config_args_parser()
     parsed_args = ap.parse_args()
-
+    if len(parsed_args.binary) < 2**parsed_args.n:
+        parsed_args.binary += '0' * (2**parsed_args.n - len(parsed_args.binary))
     if parsed_args.action == 'e': #encode
         result = encode(parsed_args)
-    else:                    #decode
+    else:                         #decode
         result = decode(parsed_args)
+        print(result)
     # TODO *тема розовой пантеры*
