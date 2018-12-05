@@ -17,6 +17,7 @@ class TestParallelDecoder(unittest.TestCase):
         f_ones = np.ones(2 ** n).astype(np.int8)
 
         f = f1 ^ fn ^ f_ones ^ f1 * fn
+        # f = np.array(list(map(int,'1110111011101110'))).astype(np.int8)
         decoded = self.decoder.decode(f)
 
         expected = [0, 1,2**(n-1),1 | 2**(n-1)]

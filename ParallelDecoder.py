@@ -4,12 +4,15 @@ from utils.common import UtilsCommon
 
 mf = cl.mem_flags
 
+MAX_LOCAL_SIZE = 256
+
 
 class ParallelDecoder:
     def __init__(self, n, r):
         self.n = n
         self.r = r
         self.ctx = cl.create_some_context()
+        # self.ctx = cl.Context(devices=cl.get_platforms()[1].get_devices())
         self.queue = cl.CommandQueue(self.ctx)
         self.monoms = {}
         self._compute_monoms()
@@ -51,7 +54,8 @@ class ParallelDecoder:
         for i in range(self.r, -1, -1):
             mon_g = cl.Buffer(self.ctx, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=self.monoms[i])
             m = self.n - i
-            local_size = min(2 ** m, 256)  # todo change 256 to device max local size
+            local_size = min(2 ** (m - 1), MAX_LOCAL_SIZE)
+            if m == 0: local_size = 0
             global_size = UtilsCommon.C_n_r(self.n, i) * local_size
             check_monom_res *= 0
             cl.enqueue_copy(self.queue, check_monon_res_g, check_monom_res)
