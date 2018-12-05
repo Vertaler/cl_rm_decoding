@@ -133,12 +133,12 @@ __kernel void check_monom( __global const char *f, //function vector
   barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
   if(local_id == 0){
     int sum = 0;
-    printf("Total sum for monom %d: ", monom);
+    LOG("Total sum for monom %d: ", monom);
     for(int i=0; i < count; i++){
         LOG("%d ", edge_sums[i]);
         sum += edge_sums[i];
     }
-    printf("=%d \n", sum);
+    LOG("=%d \n", sum);
     res[monom] = sum > (count/2);
   }
 }
@@ -289,7 +289,7 @@ __kernel void linear_decode(__global const char *f, __global char *res, int n, _
         while(half_count){
             //if(half_count==1) break;
             if(!(index & half_count) && index >= begin){
-                printf("Count %d w[%d]=%d w[%d]=%d  ",half_count*2,index,walsh_res[index],index|half_count, walsh_res[index|half_count]);
+                LOG("Count %d w[%d]=%d w[%d]=%d  ",half_count*2,index,walsh_res[index],index|half_count, walsh_res[index|half_count]);
                 int tmp = walsh_res[index];
                 walsh_res[index] = walsh_res[index] + walsh_res[index | half_count];
                 walsh_res[index | half_count] = tmp - walsh_res[index | half_count];
@@ -302,7 +302,7 @@ __kernel void linear_decode(__global const char *f, __global char *res, int n, _
                    begin += half_count;
                }
             }
-            printf("\n");
+            LOG("\n");
             half_count /= 2;
 
             barrier(CLK_GLOBAL_MEM_FENCE|CLK_LOCAL_MEM_FENCE);
