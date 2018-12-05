@@ -2,7 +2,6 @@ import math
 import numpy as np
 import timeit
 
-
 class UtilsCommon:
 
     DEBUG = False
@@ -28,6 +27,48 @@ class UtilsCommon:
         if result_len < func_len:
             result += '0' * (func_len - result_len)
         return result
+
+    @staticmethod
+    def check_string_binary(str):
+        p = set(str)
+        if {'0', '1'} == p or p == {'0'} or p == {'1'}:
+            return True
+        else:
+            return False
+
+    @staticmethod
+    def bin_form_anf_from_str(anf_str, n):
+        temp = anf_str.split('+')
+        result = 0
+        for monom in temp:
+            monom = monom.strip(' ')
+            if monom == '1':
+                result ^= 1
+            elif monom == '0':
+                pass
+            else:
+                nums = list(filter(lambda x: x.isdecimal(), monom.split('x')))
+                monomPos = 0
+                for num in nums:
+                    assert int(num) <= n, "Function have {0} variables".format(n)
+                    monomPos ^= (1 << n - int(num))
+                result += (1 << monomPos)
+        result = '{0:b}'.format(result)[::-1]
+        result_len = len(result)
+        func_len = 2**n
+        if result_len < func_len:
+            result += '0' * (func_len - result_len)
+        return result
+
+    @staticmethod
+    def bin_anf_to_str(binary_anf, n):
+        binary_anf #type: np.ndarray
+        result = ''
+        for i in range(len(binary_anf)):
+            if binary_anf[i] == 1:
+                # TODO bin to anf
+                pass
+        pass
 
     @staticmethod
     def C_n_r(n, r):
