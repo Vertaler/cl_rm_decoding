@@ -1,11 +1,7 @@
 import math
 import numpy as np
-import timeit
-
 
 class UtilsCommon:
-
-    DEBUG = False
 
     @staticmethod
     def check_string_binary(str):
@@ -52,10 +48,7 @@ class UtilsCommon:
     @staticmethod
     def get_i_th_element_of_subfunc(i, flat, n):
         offset = 0
-
-    @staticmethod
-    def measure_perf(callback, times=1):
-        return timeit.timeit(callback, number=times)
+        
 
     @staticmethod
     def get_weight(var_int, lim=32):
@@ -108,8 +101,3 @@ class UtilsCommon:
     def np_array_from_ones(array, copy=True):
         vec_func = np.vectorize(UtilsCommon.from_one)
         return UtilsCommon.np_array_apply_to_each(array, vec_func, copy)
-
-    @staticmethod
-    def log(message):
-        if UtilsCommon.DEBUG:
-            print(message)
