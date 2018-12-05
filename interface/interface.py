@@ -14,15 +14,17 @@ class CmdInterface:
         self.rm_code_word_decoded.rm_code_info = self.rm_code_info
         pass
 
-    def read_rm_code_info(self):
-        n = int(input("Enter n for RM(n,r): "))
-        r = int(input("Enter r for RM(n,r): "))
+    def read_rm_code_info(self, n, r):
+        assert n > 0 and r > 0, "Error: wrong value of n or r"
+        assert n > r,           "r can't be bigger than n"
+        #n = int(input("Enter n for RM(n,r): "))
+        #r = int(input("Enter r for RM(n,r): "))
         self.rm_code_info.n = n
         self.rm_code_info.r = r
         return self
 
-    def read_rm_code_pure_word(self):
-        pure_word_str = input("Enter word vector to encode: ")
+    def read_rm_code_pure_word(self, pure_word_str):
+        #pure_word_str = input("Enter word vector to encode: ")
         pure_word_arr = UtilsCommon.np_array_from_bin_str(pure_word_str)
         self.rm_code_word.pure_word = pure_word_arr
         return self
@@ -71,6 +73,6 @@ class CmdInterface:
         return self
 
 
-if __name__ == "__main__":
-    CmdInterface().\
-        exec()
+#if __name__ == "__main__":
+#    CmdInterface().\
+#        exec()
