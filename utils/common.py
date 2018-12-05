@@ -36,6 +36,16 @@ class UtilsCommon:
         return result
 
     @staticmethod
+    def bin_anf_to_str(binary_anf, n):
+        binary_anf #type: np.ndarray
+        result = ''
+        for i in range(len(binary_anf)):
+            if binary_anf[i] == 1:
+                # TODO bin to anf
+                pass
+        pass
+
+    @staticmethod
     def C_n_r(n, r):
         n_fac = math.factorial(n)
         r_fac = math.factorial(r)
