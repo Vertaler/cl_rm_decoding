@@ -14,8 +14,8 @@ def config_args_parser(): #parser vars: log versions of vars
     args_parser.add_argument('-b', '--binary', type=str, metavar='1101...',
                              help='bits to encode, example: 1101')
     args_parser.add_argument('-t', '--action',           metavar='e or d',
-                             choices=['e', 'd'],         default='e',
-                             help='encode (input as anf of binary) or decode (binary only) (e by defualt)')
+                             choices=['e', 'd'],         default='d',
+                             help='encode (input as anf of binary) or decode (binary only) (d by defualt)')
     args_parser.add_argument('-m', '--mode',             metavar='p or s',
                              choices=['p', 's'],         default='p',
                              help='working mode (parallel = p or sequential = s). parallel by default (Decode only)',)
