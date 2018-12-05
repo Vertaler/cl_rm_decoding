@@ -61,14 +61,24 @@ class UtilsCommon:
         return result
 
     @staticmethod
-    def bin_anf_to_str(binary_anf, n):
+    def bin_anf_to_str_form(binary_anf, n):
         binary_anf #type: np.ndarray
-        result = ''
+        result = []
         for i in range(len(binary_anf)):
             if binary_anf[i] == 1:
                 # TODO bin to anf
-                pass
-        pass
+                nums = []
+                for j in range(n):
+                    if i & (1 << j):
+                        nums.append(j + 1)
+                if nums == []:
+                    result.append('1')
+                else:
+                    temp = ''
+                    for num in nums[::-1]:
+                        temp += 'x' + str(n - num + 1)
+                    result.append(temp)
+        return ' + '.join(result)
 
     @staticmethod
     def C_n_r(n, r):
