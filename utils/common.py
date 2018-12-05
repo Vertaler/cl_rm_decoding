@@ -75,8 +75,8 @@ class UtilsCommon:
                     result.append('1')
                 else:
                     temp = ''
-                    for num in nums:
-                        temp += 'x' + str(num)
+                    for num in nums[::-1]:
+                        temp += 'x' + str(n - num + 1)
                     result.append(temp)
         return ' + '.join(result)
 
