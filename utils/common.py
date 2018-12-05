@@ -19,6 +19,8 @@ class UtilsCommon:
             monom = monom.strip(' ')
             if monom == '1':
                 result ^= 1
+            elif monom == '0':
+                pass
             else:
                 nums = list(filter(lambda x: x.isdecimal(), monom.split('x')))
                 monomPos = 0

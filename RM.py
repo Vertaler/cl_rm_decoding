@@ -53,8 +53,8 @@ if __name__ == "__main__":
     args = sys.argv
     ap = config_args_parser()
     parsed_args = ap.parse_args()
-    if len(parsed_args.binary) < 2**parsed_args.n:
-        parsed_args.binary += '0' * (2**parsed_args.n - len(parsed_args.binary))
+    #if len(parsed_args.binary) < 2**parsed_args.n:
+    #    parsed_args.binary += '0' * (2**parsed_args.n - len(parsed_args.binary))
     if parsed_args.action == 'e': #encode
         result = encode(parsed_args)
     else:                         #decode
