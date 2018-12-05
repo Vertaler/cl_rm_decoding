@@ -82,5 +82,3 @@ class RMCoder:
         UtilsCommon.log('[single_step_core] anf_to_cut_off = {0}'.format(UtilsCommon.np_array_to_str(anf_to_cut_off)))
         func_to_cut_off = MebiusTransform.exec(anf_to_cut_off)
         rm_code_word.encoded_with_errors = np.bitwise_xor(np.copy(word_to_decode), func_to_cut_off)
-
-
