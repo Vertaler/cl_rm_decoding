@@ -122,7 +122,7 @@ __kernel void check_monom( __global const char *f, //function vector
   int count = 1 << m;
   STANDARD_VARS(count)
 
-  if(local_id==0) printf("Local Size: %d CNT: %d CNT_PER_ITEM: %d CNT: %d\n", local_size, count, count_per_item, count);
+  if(local_id==0) LOG("Local Size: %d CNT: %d CNT_PER_ITEM: %d CNT: %d\n", local_size, count, count_per_item, count);
   //monom &= ~(leftmost_coord);
   LOG("Size per item: %d Local_size: %d", count_per_item, local_size);
   for(int i=0; i<count_per_item; i++){
@@ -180,7 +180,7 @@ __kernel void mobius_transform(__global const char *input, __global char *output
             }
 
         }
-        printf("\n");
+        LOG("\n");
         barrier(CLK_GLOBAL_MEM_FENCE|CLK_LOCAL_MEM_FENCE);
         offset /= 2;
     }

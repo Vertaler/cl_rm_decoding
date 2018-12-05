@@ -1,8 +1,31 @@
 import math
 import numpy as np
 
-
 class UtilsCommon:
+
+    @staticmethod
+    def bit_form_anf_from_str(anf_str, n):
+        temp = anf_str.split('+')
+        result = 0
+        for monom in temp:
+            monom = monom.strip(' ')
+            if monom == '1':
+                result ^= 1
+            elif monom == '0':
+                continue
+            else:
+                nums = list(filter(lambda x: x.isdecimal(), monom.split('x')))
+                monomPos = 0
+                for num in nums:
+                    assert int(num) <= n, "Function have {0} variables".format(n)
+                    monomPos ^= (1 << n - int(num))
+                result += (1 << monomPos)
+        result = '{0:b}'.format(result)[::-1]
+        result_len = len(result)
+        func_len = 2**n
+        if result_len < func_len:
+            result += '0' * (func_len - result_len)
+        return result
 
     @staticmethod
     def C_n_r(n, r):
@@ -15,6 +38,11 @@ class UtilsCommon:
     @staticmethod
     def get_mid_indx(l, r):
         return (l + r) // 2
+
+    @staticmethod
+    def get_i_th_element_of_subfunc(i, flat, n):
+        offset = 0
+        
 
     @staticmethod
     def get_weight(var_int, lim=32):
