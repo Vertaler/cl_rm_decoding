@@ -69,6 +69,15 @@ class TestCommon(unittest.TestCase):
         applied = uc.np_array_from_ones(orig)
         self.assertTrue(np.array_equal(applied, np.array([0, 1, 0])))
 
+    def test_measure_perf(self):
+        def callback():
+            y = 3.1415
+            for x in range(100):
+                y = y ** 0.7
+            return y
+        took_seconds = uc.measure_perf(callback, 10000)
+        self.assertTrue(took_seconds < 10)
+
 
 if __name__ == '__main__':
     unittest.main()

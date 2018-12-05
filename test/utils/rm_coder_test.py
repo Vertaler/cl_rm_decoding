@@ -28,21 +28,30 @@ class TestRMCoder(unittest.TestCase):
         self.rmcw_2.bring_some_errors()
 
     # def test_single_step_core(self):
-    #     rmcd.single_step_core(self.rmcw_0, 0)
-    #     rmcd.single_step_core(self.rmcw_1, 1)
+    #     # rmcd.single_step_core(self.rmcw_0, 0)
+    #     # rmcd.single_step_core(self.rmcw_1, 1)
+    #     rmcd.single_step_core(self.rmcw_2, 2)
+    #     print(self.rmcw_2.encoded_with_errors)
+    #     print(self.rmcw_2.decoded)
     #     rmcd.single_step_core(self.rmcw_2, 1)
+    #     print(self.rmcw_2.encoded_with_errors)
+    #     print(self.rmcw_2.decoded)
+    #     rmcd.single_step_core(self.rmcw_2, 0)
+    #     print(self.rmcw_2.encoded_with_errors)
     #     print(self.rmcw_2.decoded)
     #     pass
 
     # def test_decode_recursive_core(self):
-    #     rmcd.decode_recursive_core(self.rmcw_0, 0)
-    #     rmcd.decode_recursive_core(self.rmcw_1, 1)
+    #     # rmcd.decode_recursive_core(self.rmcw_0, 0)
+    #     # rmcd.decode_recursive_core(self.rmcw_1, 1)
     #     rmcd.decode_recursive_core(self.rmcw_2, 2)
+    #     print(self.rmcw_2.decoded)
     #     pass
 
-    # def test_decode(self):
-    #     # TODO
-    #     pass
+    def test_decode(self):
+        rmcd.decode(self.rmcw_2)
+        print(self.rmcw_2.decoded)
+        pass
     #
     # def test_encode(self):
     #     # TODO
