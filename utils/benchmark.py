@@ -1,9 +1,15 @@
 import functools
 import operator as op
 import random
+import sys
 import time
 
+import numpy as np
+
+from utils.ParallelDecoder import ParallelDecoder
+from utils.SequentialDecoder import SequentialDecoder
 from utils.common import UtilsCommon
+from utils.mebius_transform import MebiusTransform
 
 
 class UtilsError(Exception):
@@ -65,7 +71,7 @@ def generate_error_vector(n, r):
         for bt in '{:b}'.format(error_vect):
             weight += int(bt)
         if weight <= 2 ** (n - r - 1):
-            return error_vect
+            return np.array(error_vect).astype(np.int8)
 
 
 def benchmark_rm_decoder(decoder, iters):
@@ -74,17 +80,39 @@ def benchmark_rm_decoder(decoder, iters):
         raise UtilsError('Benchmark error: invalid decoder object')
 
     # generate test data
+    n = decoder.n
+    r = decoder.r
     words = []
     errors = []
     for i in range(iters):
-        word = generate_error_vector(5, 2)
-        byte_word = UtilsCommon.bit_form_anf_from_str(word, 5)
-        words.append(byte_word)
-        error_vector = generate_error_vector(5, 2)
+        word = generate_error_vector(n, r)
+        str_anf_bits = UtilsCommon.bit_form_anf_from_str(word, n)
+        vector_anf_bits = list(map(int, str_anf_bits))
+        codeword = np.array(vector_anf_bits).astype(np.int8)
+        MebiusTransform.exec(codeword, copy=False)
+        words.append(codeword)
+        error_vector = generate_error_vector(n, r)
         errors.append(error_vector)
 
     # ren benchmark
     start = time.time()
     for i in range(iters):
         decoder.decode(words[i] ^ errors[i])
-    end = time.time() - time.time()
+    end = time.time()
+    return end - start
+
+if __name__ == "__main__":
+    if len(sys.argv) != 4:
+        print("Usage: python benchmark.py iters n r")
+    iters = sys.argv[1]
+    n = sys.argv[2]
+    r = sys.argv[3]
+
+    par = ParallelDecoder(n,r)
+    seq = SequentialDecoder(n,r)
+
+    par_time = benchmark_rm_decoder(par, iters)
+    seq_time = benchmark_rm_decoder(seq, iters)
+    print(f"Sequential decoder for ({n},{r})-code totaltime: {seq_time} iters: {iters} avgtime: {seq_time/iters}")
+    print(f"Parallel decoder for ({n},{r})-code totaltime: {par_time} iters: {iters} avgtime: {par_time/iters}")
+
