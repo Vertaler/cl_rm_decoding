@@ -4,7 +4,7 @@ from utils.common import UtilsCommon
 
 mf = cl.mem_flags
 
-MAX_LOCAL_SIZE = 256
+MAX_LOCAL_SIZE = 1024
 
 
 class ParallelDecoder:
@@ -12,7 +12,7 @@ class ParallelDecoder:
         self.n = n
         self.r = r
         self.ctx = cl.create_some_context()
-        # self.ctx = cl.Context(devices=cl.get_platforms()[1].get_devices())
+        self.ctx = cl.Context(devices=[cl.get_platforms()[0].get_devices()[1]])
         self.queue = cl.CommandQueue(self.ctx)
         self.monoms = {}
         self._compute_monoms()

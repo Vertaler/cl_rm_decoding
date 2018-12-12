@@ -10,6 +10,7 @@ class CLSequentialDecoder:
         self.n = n
         self.r = r
         self.ctx = cl.create_some_context()
+        self.ctx = cl.Context(devices=[cl.get_platforms()[0].get_devices()[1]])
         self.queue = cl.CommandQueue(self.ctx)
         self.monoms = {}
         self._compute_monoms()

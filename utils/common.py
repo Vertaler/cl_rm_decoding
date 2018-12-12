@@ -101,6 +101,13 @@ class UtilsCommon:
         return timeit.timeit(callback, number=times)
 
     @staticmethod
+    def error_positions_to_np(error_pos, n):
+        result = np.zeros((2**n,)).astype(np.int8)
+        for e in error_pos.split(' '):
+            result[int(e)] = 1
+        return result
+
+    @staticmethod
     def get_weight(var_int, lim=32):
         bin_str = bin(var_int)[2:]
         return bin_str[-lim:].count("1")

@@ -42,8 +42,8 @@ class CmdInterface:
         return self
 
     def bring_some_errors(self):
-        error_str = input("Enter error vector: ")
-        error_arr = UtilsCommon.np_array_from_bin_str(error_str).astype(np.int8)
+        error_str = input("Enter error positions: ")
+        error_arr = UtilsCommon.error_positions_to_np(error_str, self.decoder.n).astype(np.int8)
         self.encoded_word ^= error_arr
         return self
 
@@ -57,7 +57,8 @@ class CmdInterface:
         return self
 
     def print_decoded_word(self):
-        print(f"Decoded word: {self.decoded_word}")
+        decoded_anf = UtilsCommon.bin_anf_to_str_form(self.decoded_word, self.decoder.n)
+        print(f"Decoded word: {decoded_anf}")
         return self
 
     def exec(self):
@@ -73,5 +74,7 @@ class CmdInterface:
 
 
 if __name__ == "__main__":
+    import pyopencl as cl
+    print(cl.get_platforms()[0].get_devices()[1].max_compute_units)
     CmdInterface().\
         exec()

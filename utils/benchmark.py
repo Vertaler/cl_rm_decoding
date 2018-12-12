@@ -84,12 +84,12 @@ def benchmark_rm_decoder(decoder, iters):
     words = []
     errors = []
     for i in range(iters):
-        word = generate_string_function(n, r)
-        str_anf_bits = UtilsCommon.bit_form_anf_from_str(word, n)
-        vector_anf_bits = list(map(int, str_anf_bits))
-        codeword = np.array(vector_anf_bits).astype(np.int8)
+        codeword = np.ones((2**n), dtype=np.int8)#generate_string_function(n, r)
+        # str_anf_bits = UtilsCommon.bit_form_anf_from_str(word, n)
+        # vector_anf_bits = list(map(int, str_anf_bits))
+        # codeword = np.array(vector_anf_bits).astype(np.int32)
         MebiusTransform.exec(codeword, copy=False)
-        words.append(codeword)
+        words.append(codeword.astype(np.int8))
         error_vector = generate_error_vector(n, r)
         errors.append(error_vector)
 
