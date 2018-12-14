@@ -33,19 +33,19 @@ int get_ith_elem_of_subfunc(int i, int monom, int m){
 }
 
 int to_real(char bool_func_elem){
-    if(bool_func_elem){
-        return -1;
-    }
-    else{
-        return 1;
-    }
-    //return pown(-1.,bool_func_elem);
+//    if(bool_func_elem){
+//        return -1;
+//    }
+//    else{
+//        return 1;
+//    }
+    return pown(-1.,bool_func_elem);
 }
 
 //DECLARE_MAP(int)
 void map_to_real(__global const char* source, __global int* dest, int size){
     STANDARD_VARS(size)
-    int remainder_size = size % local_size;
+    //int remainder_size = size % local_size;
     for(int i=0; i<count_per_item; i++){
         int index =INDEX(i);
         dest[index] = to_real(source[index]);
@@ -274,7 +274,6 @@ __kernel void linear_decode(__global const char *f, __global char *res, int n, _
     __local int begin;
     __local int abs_sum_1 ;
     __local int abs_sum_2;
-
     if(local_id==0){
         begin = 0;
         abs_sum_1 = 0;
@@ -283,36 +282,34 @@ __kernel void linear_decode(__global const char *f, __global char *res, int n, _
 
     map_to_real(f, walsh_res, half_count*2);
     barrier(CLK_LOCAL_MEM_FENCE|CLK_GLOBAL_MEM_FENCE);
-    for(int i=0; i< count_per_item; i++){
 
-        int index = INDEX(i);
-        while(half_count){
-            //if(half_count==1) break;
+    while(half_count){
+        for(int i=0; i<count_per_item; i++){
+            int index = INDEX(i);
             if(!(index & half_count) && index >= begin){
-                LOG("Count %d w[%d]=%d w[%d]=%d  ",half_count*2,index,walsh_res[index],index|half_count, walsh_res[index|half_count]);
+                LOG("Count %d w[%d]=%d w[%d]=%d  \n", half_count*2,index,walsh_res[index],index|half_count, walsh_res[index|half_count]);
                 int tmp = walsh_res[index];
                 walsh_res[index] = walsh_res[index] + walsh_res[index | half_count];
                 walsh_res[index | half_count] = tmp - walsh_res[index | half_count];
             }
-            //barrier(CLK_GLOBAL_MEM_FENCE|CLK_LOCAL_MEM_FENCE);
-            if(local_id == 0 ){
-               abs_sum_1 = seq_abs_sum_array(walsh_res + begin, half_count);
-               abs_sum_2 = seq_abs_sum_array(walsh_res + begin + half_count, half_count);
-               if(abs_sum_2 > abs_sum_1){
-                   begin += half_count;
-               }
-            }
-            LOG("\n");
-            half_count /= 2;
-
             barrier(CLK_GLOBAL_MEM_FENCE|CLK_LOCAL_MEM_FENCE);
         }
+        barrier(CLK_GLOBAL_MEM_FENCE|CLK_LOCAL_MEM_FENCE);
+        if(local_id == 0 ){
+               abs_sum_1 = seq_abs_sum_array(walsh_res + begin, half_count);
+               abs_sum_2 = seq_abs_sum_array(walsh_res + begin + half_count, half_count);
+               if(abs_sum_2 > abs_sum_1)
+                   begin += half_count;
+        }
+        half_count /= 2;
     }
 
+
+    //}
+        //printf("Per item: %d index: %d cnt: %d  \n", count_per_item, index, 2*half_count);
+
+    barrier(CLK_GLOBAL_MEM_FENCE|CLK_LOCAL_MEM_FENCE);
     if(local_id == 0){
-        if(begin <((1<<n)-1) && walsh_res[begin+1]>walsh_res[begin]){
-            begin += 1;
-        }
         for(int i=0; i < n; i++){
            res[1 << i] = (begin & 1<<i) != 0;
         }
