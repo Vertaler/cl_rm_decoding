@@ -148,19 +148,6 @@ __kernel void xor_arrays(__global char *first, __global char *second){
     first[global_id] ^= second[global_id];
 }
 
-__kernel void mobius_transform_old(__global const char *input, __global char *output, int n){
-    int offset = 1 << (n-1);
-    int global_id = get_global_id(0);
-    output[global_id] = input[global_id];
-    while(offset){
-        if(!(global_id & offset)){
-            output[global_id | offset] = output[global_id] ^ output[global_id | offset];
-        }
-        offset /= 2;
-        barrier(CLK_GLOBAL_MEM_FENCE);
-    }
-}
-
 __kernel void mobius_transform(__global const char *input, __global char *output, int n){
     int offset = 1 << (n-1);
     STANDARD_VARS(2*offset)//total count of elements 2^n=2*offset
@@ -183,88 +170,6 @@ __kernel void mobius_transform(__global const char *input, __global char *output
         LOG("\n");
         barrier(CLK_GLOBAL_MEM_FENCE|CLK_LOCAL_MEM_FENCE);
         offset /= 2;
-    }
-}
-
-__kernel void linear_decode_old(__global const char *f, __global char *res, int n, __global int* walsh_res){
-    int local_id = get_local_id(0);
-    const int local_size = get_local_size(0);
-    __local int half_count;
-    __local int begin;
-    __local int abs_sum_1;
-    __local int abs_sum_2;
-    __local int layer;
-    if(local_id == 0){
-        layer = 0;
-        begin = 0;
-        half_count = 1 << (n - 1);
-    }
-    map_to_real(f,walsh_res, half_count*2);
-    while(local_size < half_count){
-        int count_per_item = half_count / local_size;
-        for(int i=0; i<count_per_item; i++){
-          int first_coord = begin + i*local_size + local_id;
-          int second_coord = first_coord + half_count;
-
-          int f1 = walsh_res[first_coord];
-          int f2 = walsh_res[second_coord];
-
-          walsh_res[first_coord] =  f1 + f2;
-          walsh_res[second_coord] = f1 - f2;
-          LOG("Layer: %d Item: %d Count:%d Begin:%d i1:%d i2:%d f1:%d f2:%d w1:%d w2:%d\n",
-          layer, local_id, half_count*2, begin, first_coord, second_coord, f1, f2, walsh_res[first_coord], walsh_res[second_coord]);
-        }
-        barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
-        if(get_local_id(0) == 0 )
-           abs_sum_1 = seq_abs_sum_array(walsh_res + begin, half_count);
-        if(get_local_id(0) == 1 )
-           abs_sum_2 = seq_abs_sum_array(walsh_res + begin + half_count, half_count);
-        barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
-        if(local_id == 0){
-           if(abs_sum_1 < abs_sum_2){
-               begin += half_count;
-           }
-           layer++;
-           half_count /= 2;
-        }
-        barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
-    }
-
-    while(half_count > 0 && local_id < half_count){
-       int first_coord = begin + local_id;
-       int second_coord = first_coord + half_count;
-
-       int f1 = walsh_res[first_coord];
-       int f2 = walsh_res[second_coord];
-
-       walsh_res[first_coord] =  f1 + f2;
-       walsh_res[second_coord ] = f1 - f2;
-       LOG("Layer:%d Item: %d Count:%d Begin:%d i1:%d i2:%d f1:%d f2:%d w1:%d w2:%d\n",
-       layer, local_id, half_count*2, begin, first_coord, second_coord, f1, f2, walsh_res[first_coord], walsh_res[second_coord]);
-       if(local_id == 0 ){
-            abs_sum_1 = seq_abs_sum_array(walsh_res + begin, half_count);
-       }
-       if(local_id == 1 ){
-            abs_sum_2 = seq_abs_sum_array(walsh_res + begin + half_count, half_count);
-       }
-       barrier( CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
-       if(local_id == 0){
-          if(abs_sum_1 < abs_sum_2){
-              begin += half_count;
-          }
-          layer++;
-          half_count /= 2;
-       }
-    }
-    barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
-    if(local_id == 1){
-        if(abs(walsh_res[begin+1]) > abs(walsh_res[begin]))
-            begin = begin+1;
-        LOG("%d %d\n", begin, walsh_res[begin]);
-        for(int i=0; i < n; i++){
-            res[1 << i] = (begin & 1<<i) != 0;
-        }
-        res[0] = walsh_res[begin] < 0;
     }
 }
 
@@ -303,10 +208,6 @@ __kernel void linear_decode(__global const char *f, __global char *res, int n, _
         }
         half_count /= 2;
     }
-
-
-    //}
-        //printf("Per item: %d index: %d cnt: %d  \n", count_per_item, index, 2*half_count);
 
     barrier(CLK_GLOBAL_MEM_FENCE|CLK_LOCAL_MEM_FENCE);
     if(local_id == 0){

@@ -1,19 +1,22 @@
 import sys
 
-from utils.ParallelDecoder import ParallelDecoder
-from utils.CLSequentialDecoder import CLSequentialDecoder
+from decoders.ParallelDecoder import ParallelDecoder
+from decoders.SequentialDecoder import SequentialDecoder
 from utils.benchmark import benchmark_rm_decoder
 
 if __name__ == "__main__":
     if len(sys.argv) != 4:
         print("Usage: python benchmark.py iters n r")
-        sys.exit(1)
-    iters = int(sys.argv[1])
-    n = int(sys.argv[2])
-    r = int(sys.argv[3])
-
+        print("Use default parameters: 1000 9 3")
+        iters = 1000
+        n = 9
+        r = 2
+    else:
+        iters = int(sys.argv[1])
+        n = int(sys.argv[2])
+        r = int(sys.argv[3])
     par = ParallelDecoder(n,r)
-    seq = CLSequentialDecoder(n, r)
+    seq = SequentialDecoder(n, r)
 
     par_time = benchmark_rm_decoder(par, iters)
     seq_time = benchmark_rm_decoder(seq, iters)

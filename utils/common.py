@@ -7,6 +7,14 @@ class UtilsCommon:
     DEBUG = False
 
     @staticmethod
+    def generate_error_vector(n, r):
+        while True:
+            error_vect = np.random.choice(range(1 << n))
+            weight = UtilsCommon.get_weight(error_vect)
+            if weight <= 2 ** (n - r - 1):
+                return np.array(error_vect).astype(np.int8)
+
+    @staticmethod
     def bit_form_anf_from_str(anf_str, n):
         temp = anf_str.split('+')
         result = 0
