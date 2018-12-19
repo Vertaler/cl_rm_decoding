@@ -33,16 +33,9 @@ int get_ith_elem_of_subfunc(int i, int monom, int m){
 }
 
 int to_real(char bool_func_elem){
-//    if(bool_func_elem){
-//        return -1;
-//    }
-//    else{
-//        return 1;
-//    }
     return pown(-1.,bool_func_elem);
 }
 
-//DECLARE_MAP(int)
 void map_to_real(__global const char* source, __global int* dest, int size){
     STANDARD_VARS(size)
     //int remainder_size = size % local_size;
@@ -104,7 +97,6 @@ void edge_sum_for_monom(
         LOG("%d ", f[index]);
         edge_sum[edge_index] ^= f[index];
     }
-    //printf("Mon=%d G[%d]=%d\n",monom, edge_index, edge_sum[edge_index]  );
     LOG("\n");
 
 }
@@ -123,13 +115,11 @@ __kernel void check_monom( __global const char *f, //function vector
   STANDARD_VARS(count)
 
   if(local_id==0) LOG("Local Size: %d CNT: %d CNT_PER_ITEM: %d CNT: %d\n", local_size, count, count_per_item, count);
-  //monom &= ~(leftmost_coord);
   LOG("Size per item: %d Local_size: %d", count_per_item, local_size);
   for(int i=0; i<count_per_item; i++){
     int edge_index = INDEX(i);
     edge_sum_for_monom(f, edge_sums, monom, edge_index, m, r);
   }
-//  printf("\n");
   barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
   if(local_id == 0){
     int sum = 0;
@@ -159,7 +149,6 @@ __kernel void mobius_transform(__global const char *input, __global char *output
         LOG("Offset: %d LocID: %d  ", offset, local_id);
         for(int i=0; i< count_per_item; i++){
             int index = INDEX(i);
-            //printf("f[%d]=%d ",index, output[index]);
             if(!(index & offset)){
                 LOG("f[%d]=%d^f[%d]=%d ",index,output[index], index|offset, output[index|offset]);
                 output[index | offset] = output[index] ^ output[index | offset];
