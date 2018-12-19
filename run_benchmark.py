@@ -4,13 +4,17 @@ from decoders.ParallelDecoder import ParallelDecoder
 from decoders.SequentialDecoder import SequentialDecoder
 from utils.benchmark import benchmark_rm_decoder
 
+DEFAULT_ITERS = 1000
+DEFAULT_N = 9
+DEFAULT_R = 2
+
 if __name__ == "__main__":
     if len(sys.argv) != 4:
         print("Usage: python benchmark.py iters n r")
-        print("Use default parameters: 1000 9 3")
-        iters = 1000
-        n = 9
-        r = 2
+        print(f"Use default parameters: {DEFAULT_ITERS} {DEFAULT_N} {DEFAULT_R}")
+        iters = DEFAULT_ITERS
+        n = DEFAULT_N
+        r = DEFAULT_R
     else:
         iters = int(sys.argv[1])
         n = int(sys.argv[2])
