@@ -3,7 +3,7 @@
 декодирования кода Рида-Маллера. Для нелинейных функций  
 применяется мажоритарный алгоритм Рида. А для линейных
 алгоритм Лицына-Шеховцева.
-Более подробное описание приведено в документе [RM_Notes.pdf](https://github.com/Vertaler/cl_rm_decoding/blob/master/RM_Notes.pdf)
+Более подробное описание приведено в документе [RM_Notes.pdf](https://github.com/Vertaler/cl_rm_decoding/blob/master/RM_notes.pdf)
 
 # Инструкция по использованию
 
